@@ -17,6 +17,6 @@ export class User extends BaseEntity {
   @Column()
   hashedPassword: string;
 
-  @Column()
+  @Column({ nullable: true })
   refreshToken: string;
 }
