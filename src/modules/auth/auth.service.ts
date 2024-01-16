@@ -4,11 +4,12 @@ import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import jwt from 'jsonwebtoken';
 import { JWT_CONFIG } from '../../configs/jwt.config';
+import { Response } from 'express';
 @Injectable()
 export class AuthService {
   constructor(private readonly userService: UserService) {}
 
-  async signup(signUpDto: SignUpDto) {
+  async signup(signUpDto: SignUpDto, res: Response) {
     const { password, ...userInfo } = signUpDto;
     const hashedPassword = bcrypt.hashSync(password, 10);
 
@@ -23,7 +24,15 @@ export class AuthService {
     const refreshToken = await this.generateRefreshToken(id, email);
 
     await this.userService.update(id, { refreshToken });
-    return {};
+
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    res.cookie('jwt', refreshToken, {
+      httpOnly: true,
+      maxAge: oneDay,
+    });
+
+    return { accessToken, newUser };
   }
 
   private async generateAccessToken(id: string, email: string) {
