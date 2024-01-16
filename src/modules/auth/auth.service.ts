@@ -1,16 +1,23 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import * as jwt from 'jsonwebtoken';
 import { Response } from 'express';
+import { SignInDto } from './dto/sign-in.dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(private readonly userService: UserService) {}
 
-  async signup(signUpDto: SignUpDto, res: Response) {
+  async signUp(signUpDto: SignUpDto, res: Response) {
     try {
       const { password, ...userInfo } = signUpDto;
       let hashedPassword;
@@ -52,6 +59,44 @@ export class AuthService {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'An error occurred during signup. Please try again later.',
       });
+    }
+  }
+
+  async signIn(signInDto: SignInDto, res: Response) {
+    const { email, password } = signInDto;
+    try {
+      const user = await this.userService.findUserByEmail(email);
+
+      if (!user) {
+        this.logger.warn(`Invalid email "${email}" or password`);
+        throw new UnauthorizedException('Invalid email or password');
+      }
+
+      const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
+
+      if (!passwordMatch) {
+        this.logger.warn(`Invalid email "${email}" or password`);
+        throw new UnauthorizedException('Invalid email or password');
+      }
+
+      const { id } = user;
+      const accessToken = await this.generateAccessToken(id, email);
+      const refreshToken = await this.generateRefreshToken(id, email);
+
+      await this.userService.update(id, { refreshToken });
+
+      res.cookie('jwt', refreshToken, {
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      const currentUser = await this.userService.findOne(user.id);
+      return res.json({ accessToken, currentUser });
+    } catch (error) {
+      this.logger.error(`Sign-in failed: ${error.message}`, error.stack);
+      res
+        .status(401)
+        .json({ message: 'Sign-in failed. Please try again later.' });
     }
   }
 

@@ -25,6 +25,7 @@ export class UserService {
       return await this.userRepository.save(user);
     } catch (error) {
       this.logger.error(`Failed to create user: ${error.message}`, error.stack);
+
       throw new InternalServerErrorException('Failed to create user');
     }
   }
@@ -38,13 +39,41 @@ export class UserService {
       });
 
       if (!user) {
+        this.logger.warn(`User with ID "${userId}" not found`);
         throw new NotFoundException(`User with ID "${userId}" not found`);
       }
 
       return user;
     } catch (error) {
       this.logger.error(`Failed to find user: ${error.message}`, error.stack);
+
       throw new NotFoundException(`Failed to find user with ID "${userId}"`);
+    }
+  }
+
+  async findUserByEmail(email: string) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: {
+          email,
+        },
+      });
+
+      if (!user) {
+        this.logger.warn(`User with email "${email}" not found`);
+        throw new NotFoundException(`User with email "${email}" not found`);
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      this.logger.error('Failed to find user by email', error.stack);
+
+      throw new InternalServerErrorException(
+        'Failed to find user by email',
+        error,
+      );
     }
   }
 
@@ -53,6 +82,7 @@ export class UserService {
       const user = await this.findOne(userId);
 
       if (!user) {
+        this.logger.warn(`User with ID "${userId}" not found`);
         throw new NotFoundException(`User with ID "${userId}" not found`);
       }
 
