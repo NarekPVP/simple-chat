@@ -1,9 +1,9 @@
-import { CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export abstract class BaseEntity {
-  @CreateDateColumn({ type: 'timestamp' })
+  @Column('datetime', { default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @Column('datetime', { default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }

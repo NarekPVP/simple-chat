@@ -37,4 +37,15 @@ export class AuthController {
   async signIn(@Body() signInDto: SignInDto, @Res() res: Response) {
     return await this.authService.signIn(signInDto, res);
   }
+
+  @Post('sign-out')
+  @ApiOperation({ summary: 'User Sign-Out' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'User successfully signed out. Refresh token cleared from the cookie.',
+  })
+  async signOut(@Res() res: Response) {
+    return await this.authService.signOut(res);
+  }
 }
