@@ -100,6 +100,20 @@ export class AuthService {
     }
   }
 
+  async signOut(res: Response) {
+    try {
+      res.clearCookie('jwt');
+
+      return res.status(HttpStatus.OK).json({ message: 'Sign-out successful' });
+    } catch (error) {
+      this.logger.error('An error occurred during sign-out.', error);
+
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        message: 'An error occurred during sign-out. Please try again later.',
+      });
+    }
+  }
+
   private async generateAccessToken(id: string, email: string) {
     const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
     const accessToken = jwt.sign({ id, email }, ACCESS_TOKEN_SECRET, {
