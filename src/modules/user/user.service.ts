@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserResponseDto } from './dto/user.response.dto';
 
 @Injectable()
 export class UserService {
@@ -19,10 +20,10 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     try {
       const user = this.userRepository.create(createUserDto);
-      return await this.userRepository.save(user);
+      return this.sanitizeUser(await this.userRepository.save(user));
     } catch (error) {
       this.logger.error(`Failed to create user: ${error.message}`, error.stack);
 
@@ -30,7 +31,7 @@ export class UserService {
     }
   }
 
-  async findOne(userId: string): Promise<User> {
+  async findOne(userId: string): Promise<UserResponseDto> {
     try {
       const user = await this.userRepository.findOne({
         where: {
@@ -43,7 +44,7 @@ export class UserService {
         throw new NotFoundException(`User with ID "${userId}" not found`);
       }
 
-      return user;
+      return this.sanitizeUser(user);
     } catch (error) {
       this.logger.error(`Failed to find user: ${error.message}`, error.stack);
 
@@ -51,7 +52,7 @@ export class UserService {
     }
   }
 
-  async findUserByEmail(email: string) {
+  async findUserByEmail(email: string): Promise<User> {
     try {
       const user = await this.userRepository.findOne({
         where: {
@@ -77,7 +78,10 @@ export class UserService {
     }
   }
 
-  async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
     try {
       const user = await this.findOne(userId);
 
@@ -87,7 +91,7 @@ export class UserService {
       }
 
       Object.assign(user, updateUserDto);
-      return await this.userRepository.save(user);
+      return this.sanitizeUser(await this.userRepository.save(user));
     } catch (error) {
       this.logger.error(`Failed to update user: ${error.message}`, error.stack);
 
@@ -97,5 +101,10 @@ export class UserService {
         `Failed to update user with ID "${userId}"`,
       );
     }
+  }
+
+  private sanitizeUser(user: User): UserResponseDto {
+    const { hashedPassword, refreshToken, ...sanitizedUser } = user;
+    return sanitizedUser;
   }
 }
