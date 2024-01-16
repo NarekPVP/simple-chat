@@ -17,7 +17,13 @@ export class AuthService {
       hashedPassword,
     });
 
-    // return this.login(newUser);
+    const { id, email } = newUser;
+
+    const accessToken = await this.generateAccessToken(id, email);
+    const refreshToken = await this.generateRefreshToken(id, email);
+
+    await this.userService.update(id, { refreshToken });
+    return {};
   }
 
   private async generateAccessToken(id: string, email: string) {
