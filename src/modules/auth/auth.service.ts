@@ -27,4 +27,12 @@ export class AuthService {
     });
     return accessToken;
   }
+
+  private async generateRefreshToken(id: string, email: string) {
+    const { REFRESH_TOKEN_SECRET } = JWT_CONFIG;
+    const refreshToken = jwt.sign({ id, email }, REFRESH_TOKEN_SECRET, {
+      expiresIn: '1d',
+    });
+    return refreshToken;
+  }
 }
