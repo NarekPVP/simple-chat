@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Column } from 'typeorm';
 
 export abstract class BaseEntity {
   @Column('datetime', { default: () => 'CURRENT_TIMESTAMP' })

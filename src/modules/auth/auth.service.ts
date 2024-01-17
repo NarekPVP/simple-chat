@@ -20,7 +20,7 @@ export class AuthService {
   async signUp(signUpDto: SignUpDto, res: Response) {
     try {
       const { password, ...userInfo } = signUpDto;
-      let hashedPassword;
+      let hashedPassword: string;
 
       try {
         hashedPassword = await bcrypt.hash(
