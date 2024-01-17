@@ -15,7 +15,10 @@ import { SignInDto } from './dto/sign-in.dto';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService;
+    
+    ) {}
 
   async signUp(signUpDto: SignUpDto, res: Response) {
     try {
