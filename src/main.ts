@@ -9,6 +9,7 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({ credentials: true, origin: '*' });
   app.use(cookieParser());
 
   const options = new DocumentBuilder()

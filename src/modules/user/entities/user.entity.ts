@@ -1,4 +1,4 @@
-import { BaseEntity } from 'src/shared/base.entity';
+import { BaseEntity } from 'src/shared/entities/base.entity';
 import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity({ name: 'user' })
