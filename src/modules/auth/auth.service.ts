@@ -8,17 +8,17 @@ import {
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/sign-up.dto';
-import * as jwt from 'jsonwebtoken';
 import { Response } from 'express';
 import { SignInDto } from './dto/sign-in.dto';
+import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private readonly userService: UserService;
-    
-    ) {}
+    private readonly userService: UserService,
+    private jwtService: JwtService,
+  ) {}
 
   async signUp(signUpDto: SignUpDto, res: Response) {
     try {
@@ -44,8 +44,8 @@ export class AuthService {
 
       const { id, email } = newUser;
 
-      const accessToken = await this.generateAccessToken(id, email);
-      const refreshToken = await this.generateRefreshToken(id, email);
+      const accessToken = this.generateAccessToken(id, email);
+      const refreshToken = this.generateRefreshToken(id, email);
 
       await this.userService.update(id, { refreshToken });
 
@@ -117,19 +117,21 @@ export class AuthService {
     }
   }
 
-  private async generateAccessToken(id: string, email: string) {
+  private generateAccessToken(id: string, email: string): string {
     const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
-    const accessToken = jwt.sign({ id, email }, ACCESS_TOKEN_SECRET, {
-      expiresIn: '15m',
-    });
+    const accessToken = this.jwtService.sign(
+      { id, email },
+      { secret: ACCESS_TOKEN_SECRET, expiresIn: '15m' },
+    );
     return accessToken;
   }
 
-  private async generateRefreshToken(id: string, email: string) {
+  private generateRefreshToken(id: string, email: string): string {
     const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
-    const refreshToken = jwt.sign({ id, email }, REFRESH_TOKEN_SECRET, {
-      expiresIn: '1d',
-    });
+    const refreshToken = this.jwtService.sign(
+      { id, email },
+      { secret: REFRESH_TOKEN_SECRET, expiresIn: '1d' },
+    );
     return refreshToken;
   }
 }
