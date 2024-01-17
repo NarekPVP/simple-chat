@@ -5,9 +5,10 @@ import {
   Res,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
@@ -58,5 +59,19 @@ export class AuthController {
   })
   async signOut(@CurrentUser() user: Partial<User>, @Res() res: Response) {
     return await this.authService.signOut(user, res);
+  }
+
+  @Post('refresh-token')
+  @ApiOperation({ summary: 'Refresh Access Token' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Access token successfully refreshed.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid or expired refresh token.',
+  })
+  async refreshAccessToken(@Req() req: Request, @Res() res: Response) {
+    return await this.authService.refreshAccessToken(req, res);
   }
 }

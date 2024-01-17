@@ -32,7 +32,7 @@ lerna-debug.log*
 *.launch
 .settings/
 *.sublime-workspace
-.vscode/launch.json
+.vscode
 
 # IDE - VSCode
 .vscode/*

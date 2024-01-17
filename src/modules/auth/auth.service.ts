@@ -8,7 +8,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/sign-up.dto';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../user/entities/user.entity';
@@ -50,10 +50,9 @@ export class AuthService {
 
       await this.userService.update(id, { refreshToken });
 
-      const oneDay = 24 * 60 * 60 * 1000;
       res.cookie('jwt', refreshToken, {
         httpOnly: true,
-        maxAge: oneDay,
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
       return res.json({ accessToken, newUser });
@@ -118,6 +117,42 @@ export class AuthService {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'An error occurred during sign-out. Please try again later.',
       });
+    }
+  }
+
+  async refreshAccessToken(req: Request, res: Response) {
+    const refreshToken = req.cookies['jwt'];
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    try {
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+      });
+
+      const user = await this.userService.findUserByEmail(decoded.email);
+
+      if (!user || user.refreshToken !== refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const newAccessToken = this.generateAccessToken(user.id, user.email);
+      const newRefreshToken = this.generateRefreshToken(user.id, user.email);
+
+      await this.userService.update(user.id, { refreshToken: newRefreshToken });
+
+      res.cookie('jwt', newRefreshToken, {
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      return res.json({
+        accessToken: newAccessToken,
+      });
+    } catch (error) {
+      this.logger.error('An error occurred during token refresh.', error);
+      throw new UnauthorizedException('Failed to refresh access token');
     }
   }
 
