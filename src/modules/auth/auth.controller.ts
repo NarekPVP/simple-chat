@@ -1,9 +1,18 @@
-import { Body, Controller, Post, Res, HttpStatus } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Res,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
+import { JwtAuthGuard } from 'src/shared/Guards/jwt-auth.guard';
+import { CurrentUser } from 'src/shared/Decorators/current-user.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -39,13 +48,14 @@ export class AuthController {
   }
 
   @Post('sign-out')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'User Sign-Out' })
   @ApiResponse({
     status: HttpStatus.OK,
     description:
       'User successfully signed out. Refresh token cleared from the cookie.',
   })
-  async signOut(@Res() res: Response) {
-    return await this.authService.signOut(res);
+  async signOut(@CurrentUser() user, @Res() res: Response) {
+    return await this.authService.signOut(user, res);
   }
 }

@@ -83,8 +83,8 @@ export class AuthService {
       }
 
       const { id } = user;
-      const accessToken = await this.generateAccessToken(id, email);
-      const refreshToken = await this.generateRefreshToken(id, email);
+      const accessToken = this.generateAccessToken(id, email);
+      const refreshToken = this.generateRefreshToken(id, email);
 
       await this.userService.update(id, { refreshToken });
 
@@ -103,7 +103,7 @@ export class AuthService {
     }
   }
 
-  async signOut(res: Response) {
+  async signOut(user, res: Response) {
     try {
       res.clearCookie('jwt');
 
