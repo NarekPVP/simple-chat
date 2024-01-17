@@ -11,6 +11,7 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { Response } from 'express';
 import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../user/entities/user.entity';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -83,8 +84,8 @@ export class AuthService {
       }
 
       const { id } = user;
-      const accessToken = await this.generateAccessToken(id, email);
-      const refreshToken = await this.generateRefreshToken(id, email);
+      const accessToken = this.generateAccessToken(id, email);
+      const refreshToken = this.generateRefreshToken(id, email);
 
       await this.userService.update(id, { refreshToken });
 
@@ -103,14 +104,17 @@ export class AuthService {
     }
   }
 
-  async signOut(res: Response) {
-    try {
-      res.clearCookie('jwt');
+  async signOut(user: Partial<User>, res: Response) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User identification is missing');
+    }
 
+    try {
+      await this.userService.update(user.id, { refreshToken: null });
+      res.clearCookie('jwt');
       return res.status(HttpStatus.OK).json({ message: 'Sign-out successful' });
     } catch (error) {
       this.logger.error('An error occurred during sign-out.', error);
-
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'An error occurred during sign-out. Please try again later.',
       });
