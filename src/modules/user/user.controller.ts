@@ -16,9 +16,9 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/shared/guards/jwt-auth.guard';
 import { UserService } from './user.service';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
 import { User } from './entities/user.entity';
-import { UserResponseDto } from './dto/user-response.dto';
+import { UserResponseDto } from './dtos/user-response.dto';
 import { RemoveResponse } from 'src/types/remove-response.type';
 
 @ApiTags('user')

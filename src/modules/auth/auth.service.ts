@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
-import { SignUpDto } from './dto/sign-up.dto';
+import { SignUpDto } from './dtos/sign-up.dto';
 import { Request, Response } from 'express';
-import { SignInDto } from './dto/sign-in.dto';
+import { SignInDto } from './dtos/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../user/entities/user.entity';
 @Injectable()
