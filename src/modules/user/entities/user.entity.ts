@@ -1,12 +1,9 @@
 import { BaseEntity } from 'src/shared/entities/base.entity';
-import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, Unique } from 'typeorm';
 
 @Entity({ name: 'user' })
 @Unique(['email'])
 export class User extends BaseEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
   @Column()
   firstName: string;
 
