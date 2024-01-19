@@ -12,8 +12,8 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
-import { JwtAuthGuard } from 'src/shared/Guards/jwt-auth.guard';
-import { CurrentUser } from 'src/shared/Decorators/current-user.decorator';
+import { JwtAuthGuard } from 'src/shared/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
 
 @ApiTags('auth')
