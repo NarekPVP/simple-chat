@@ -1,5 +1,5 @@
 import { Room } from 'src/modules/chat/entities/room.entity';
-import { BaseEntity } from 'src/shared/entities/base.entity';
+import { BaseEntity } from 'src/common/entities/base.entity';
 import { Column, Entity, ManyToMany, Unique } from 'typeorm';
 
 @Entity({ name: 'user' })

@@ -14,7 +14,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/shared/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { User } from './entities/user.entity';
