@@ -11,12 +11,11 @@ import {
 import { Socket, Server } from 'socket.io';
 import { CreateRoomDto } from './dtos/room/create-room.dto';
 import { JwtService } from '@nestjs/jwt';
-import { WsCurrentUser } from 'src/shared/decorators/ws-current-user.decorator';
+import { WsCurrentUser } from 'src/common/decorators/ws-current-user.decorator';
 import { UserPayload } from 'src/types/user-payload.type';
 import { RoomService } from './services/room.service';
 import { UserService } from '../user/user.service';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
+import { TreeRepository } from 'typeorm';
 
 @WebSocketGateway(4800, { cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -68,10 +67,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
   ): Promise<void> {
     const { id: userId } = user;
-    const createRoom = plainToInstance(CreateRoomDto, createRoomDto);
 
-    const { participants: participantsIds } = createRoom;
-    console.log(participantsIds);
+    const { participants: participantsIds } = createRoomDto;
 
     const participants = [];
 
