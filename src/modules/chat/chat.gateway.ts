@@ -1,4 +1,4 @@
-import { BadRequestException, Logger } from '@nestjs/common';
+import { Logger, UseFilters } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -15,10 +15,15 @@ import { WsCurrentUser } from 'src/common/decorators/ws-current-user.decorator';
 import { UserPayload } from 'src/types/user-payload.type';
 import { RoomService } from './services/room.service';
 import { UserService } from '../user/user.service';
-import { TreeRepository } from 'typeorm';
+import { BaseGateway } from 'src/common/websockets/base.gateway';
+import { WsExceptionFilter } from 'src/common/filters/ws-exception.filter';
 
+@UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  extends BaseGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -28,7 +33,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
     private readonly roomService: RoomService,
-  ) {}
+  ) {
+    super();
+  }
 
   async onModuleInit(): Promise<void> {
     this.logger.log('Chat module initialized');
@@ -66,23 +73,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() createRoomDto: CreateRoomDto,
     @ConnectedSocket() socket: Socket,
   ): Promise<void> {
-    const { id: userId } = user;
-
-    const { participants: participantsIds } = createRoomDto;
-
-    const participants = [];
-
-    for (const participantsId of participantsIds) {
-      const user = await this.userService.findOne(participantsId);
-      participants.push(user);
-    }
-
-    const newRoom = await this.roomService.create(
-      userId,
+    await this.handleEvent(
+      CreateRoomDto,
       createRoomDto,
-      participants,
+      async (validatedDto) => {
+        const { id: userId } = user;
+        const { participants: participantsIds } = validatedDto;
+        const participants = [];
+
+        for (const participantsId of participantsIds) {
+          const user = await this.userService.findOne(participantsId);
+          participants.push(user);
+        }
+
+        const newRoom = await this.roomService.create(
+          userId,
+          validatedDto,
+          participants,
+        );
+        this.server.to(socket.id).emit('roomCreated', newRoom);
+      },
     );
-    this.server.to(socket.id).emit('roomCreated', newRoom);
   }
 
   private extractJwtToken(socket: Socket): string {
