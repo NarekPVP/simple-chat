@@ -7,6 +7,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 import { Socket, Server } from 'socket.io';
 import { CreateRoomDto } from './dtos/room/create-room.dto';
@@ -17,6 +18,8 @@ import { RoomService } from './services/room.service';
 import { UserService } from '../user/user.service';
 import { BaseGateway } from 'src/common/websockets/base.gateway';
 import { WsExceptionFilter } from 'src/common/filters/ws-exception.filter';
+import { RoomTypeEnum } from './enums/room-type.enum';
+import { ConnectedUserService } from './services/connected-user.service';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -33,12 +36,14 @@ export class ChatGateway
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
     private readonly roomService: RoomService,
+    private readonly connectedUserService: ConnectedUserService,
   ) {
     super();
   }
 
   async onModuleInit(): Promise<void> {
     this.logger.log('Chat module initialized');
+    await this.connectedUserService.deleteAll();
   }
 
   async handleConnection(socket: Socket) {
@@ -52,6 +57,11 @@ export class ChatGateway
         id: decoded.id,
         email: decoded.email,
       } as UserPayload;
+
+      const connectedUser = await this.connectedUserService.create(
+        decoded.id,
+        socket.id,
+      );
 
       this.logger.log(
         `Client connected: ${socket.id} - User ID: ${decoded.id}`,
@@ -78,7 +88,22 @@ export class ChatGateway
       createRoomDto,
       async (validatedDto) => {
         const { id: userId } = user;
-        const { participants: participantsIds } = validatedDto;
+        const { name, type, participants: participantsIds } = validatedDto;
+
+        if (!name && type === RoomTypeEnum.GROUP) {
+          throw new WsException(`Group chat name is required`);
+        }
+
+        if (!participantsIds?.length) {
+          throw new WsException(
+            `You cannot create room without least one participant`,
+          );
+        }
+
+        if (type === RoomTypeEnum.DIRECT && participantsIds.length !== 1) {
+          throw new WsException(`Direct chat can have only 2 member`);
+        }
+
         const participants = [];
 
         for (const participantsId of participantsIds) {
