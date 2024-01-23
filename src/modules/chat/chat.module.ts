@@ -4,9 +4,10 @@ import { RoomService } from './services/room.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Room } from './entities/room.entity';
 import { UserModule } from '../user/user.module';
+import { ConnectedUserService } from './services/connected-user.service';
 
 @Module({
-  providers: [ChatGateway, RoomService],
+  providers: [ChatGateway, RoomService, ConnectedUserService],
   imports: [TypeOrmModule.forFeature([Room]), UserModule],
 })
 export class ChatModule {}
