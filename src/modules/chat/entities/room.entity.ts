@@ -5,7 +5,7 @@ import { User } from '../../user/entities/user.entity';
 @Entity({ name: 'room' })
 @Unique(['name'])
 export class Room extends BaseEntity {
-  @Column()
+  @Column({ nullable: true })
   name: string;
 
   @Column()
