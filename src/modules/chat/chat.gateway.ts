@@ -1,4 +1,4 @@
-import { Logger, UseFilters } from '@nestjs/common';
+import { Logger, UnauthorizedException, UseFilters } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -20,6 +20,8 @@ import { BaseGateway } from 'src/common/websockets/base.gateway';
 import { WsExceptionFilter } from 'src/common/filters/ws-exception.filter';
 import { RoomTypeEnum } from './enums/room-type.enum';
 import { ConnectedUserService } from './services/connected-user.service';
+import { plainToInstance } from 'class-transformer';
+import { User } from '../user/entities/user.entity';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -53,20 +55,20 @@ export class ChatGateway
         secret: process.env.ACCESS_TOKEN_SECRET,
       });
 
-      // socket.data.user = {
-      //   id: decoded.id,
-      //   email: decoded.email,
-      // } as UserPayload;
+      socket.data.user = {
+        id: decoded.id,
+        email: decoded.email,
+      } as UserPayload;
 
       await this.connectedUserService.create(decoded.id, socket.id);
+      const rooms = await this.roomService.findByUserId(decoded.id);
+      this.server.to(socket.id).emit('userAllRooms', rooms);
 
       this.logger.log(
         `Client connected: ${socket.id} - User ID: ${decoded.id}`,
       );
     } catch (e) {
-      this.logger.error(`Authentication error: ${e.message}`);
-      socket.emit('error', 'Authentication error');
-      socket.disconnect();
+      this.handleConnectionError(socket, e);
     }
   }
 
@@ -93,20 +95,15 @@ export class ChatGateway
 
         if (!participantsIds?.length) {
           throw new WsException(
-            `You cannot create room without least one participant`,
+            `You cannot create a room without at least one participant`,
           );
         }
 
         if (type === RoomTypeEnum.DIRECT && participantsIds.length !== 1) {
-          throw new WsException(`Direct chat can have only 2 member`);
+          throw new WsException(`Direct chat can have only 2 members`);
         }
 
-        const participants = [];
-
-        for (const participantsId of participantsIds) {
-          const user = await this.userService.findOne(participantsId);
-          participants.push(user);
-        }
+        const participants = await this.fetchParticipants(participantsIds);
 
         const newRoom = await this.roomService.create(
           userId,
@@ -118,11 +115,34 @@ export class ChatGateway
     );
   }
 
+  private async fetchParticipants(participantsIds: string[]): Promise<User[]> {
+    const participants: User[] = [];
+
+    for (const participantsId of participantsIds) {
+      try {
+        const userResponseDto = await this.userService.findOne(participantsId);
+        const user = plainToInstance(User, userResponseDto);
+        participants.push(user);
+      } catch (ex) {
+        throw new WsException(`User with ID '${participantsId}' not found`);
+      }
+    }
+
+    return participants;
+  }
+
+  private handleConnectionError(socket: Socket, error: Error): void {
+    this.logger.error(`Authentication error: ${error.message}`);
+    socket.emit('exception', 'Authentication error');
+    socket.disconnect();
+  }
+
   private extractJwtToken(socket: Socket): string {
     const authHeader = socket.handshake.headers.authorization;
-    if (!authHeader) throw new Error('No authorization header');
+    if (!authHeader) throw new UnauthorizedException('No authorization header');
     const [type, token] = authHeader.split(' ');
-    if (type !== 'Bearer' || !token) throw new Error('Invalid token format');
+    if (type !== 'Bearer' || !token)
+      throw new UnauthorizedException('Invalid token format');
     return token;
   }
 }
