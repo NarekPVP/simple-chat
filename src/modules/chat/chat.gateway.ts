@@ -53,15 +53,12 @@ export class ChatGateway
         secret: process.env.ACCESS_TOKEN_SECRET,
       });
 
-      socket.data.user = {
-        id: decoded.id,
-        email: decoded.email,
-      } as UserPayload;
+      // socket.data.user = {
+      //   id: decoded.id,
+      //   email: decoded.email,
+      // } as UserPayload;
 
-      const connectedUser = await this.connectedUserService.create(
-        decoded.id,
-        socket.id,
-      );
+      await this.connectedUserService.create(decoded.id, socket.id);
 
       this.logger.log(
         `Client connected: ${socket.id} - User ID: ${decoded.id}`,
