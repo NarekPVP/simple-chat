@@ -104,6 +104,7 @@ export class ChatGateway
           throw new WsException(`Direct chat can have only 2 members`);
         }
 
+        participantsIds.push(user.id);
         const participants = await this.fetchParticipants(participantsIds);
 
         const newRoom = await this.roomService.create(
@@ -111,6 +112,8 @@ export class ChatGateway
           validatedDto,
           participants,
         );
+
+        const createdRoom = await this.roomService.findOne(newRoom.id);
         this.server.to(socket.id).emit('roomCreated', newRoom);
       },
     );
