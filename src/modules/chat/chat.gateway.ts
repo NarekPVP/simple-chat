@@ -74,6 +74,7 @@ export class ChatGateway
 
   async handleDisconnect(socket: Socket): Promise<void> {
     this.logger.log(`Client disconnected: ${socket.id}`);
+    this.connectedUserService.delete(socket.id);
   }
 
   @SubscribeMessage('createRoom')
