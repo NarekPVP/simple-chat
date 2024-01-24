@@ -51,7 +51,7 @@ export class RoomService {
     try {
       const room = await this.roomRepository.findOne({
         where: { id },
-        relations: ['participants'],
+        relations: ['participants', 'participants.connectedUsers'],
       });
       if (!room) {
         throw new WsException(`Room with ID "${id}" not found`);
