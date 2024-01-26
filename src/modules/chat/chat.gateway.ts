@@ -81,7 +81,6 @@ export class ChatGateway
   async onCreateRoom(
     @WsCurrentUser() user: UserPayload,
     @MessageBody() createRoomDto: CreateRoomDto,
-    @ConnectedSocket() socket: Socket,
   ): Promise<void> {
     await this.handleEvent(
       CreateRoomDto,
@@ -114,7 +113,22 @@ export class ChatGateway
         );
 
         const createdRoom = await this.roomService.findOne(newRoom.id);
-        this.server.to(socket.id).emit('roomCreated', newRoom);
+
+        try {
+          for (const { connectedUsers } of createdRoom.participants) {
+            for (const { socketId } of connectedUsers) {
+              this.server.to(socketId).emit('roomCreated', newRoom);
+              this.logger.log(
+                `Room created event emitted to socket ID: ${socketId}`,
+              );
+            }
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to emit roomCreated event: ${error.message}`,
+            error.stack,
+          );
+        }
       },
     );
   }
