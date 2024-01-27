@@ -22,6 +22,7 @@ import { RoomTypeEnum } from './enums/room-type.enum';
 import { ConnectedUserService } from './services/connected-user.service';
 import { plainToInstance } from 'class-transformer';
 import { User } from '../user/entities/user.entity';
+import { UpdateRoomDto } from './dtos/room/update-room.dto';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -103,7 +104,14 @@ export class ChatGateway
           throw new WsException(`Direct chat can have only 2 members`);
         }
 
-        participantsIds.push(user.id);
+        if (
+          participantsIds &&
+          participantsIds.length &&
+          !participantsIds.includes(userId)
+        ) {
+          participantsIds.push(userId);
+        }
+
         const participants = await this.fetchParticipants(participantsIds);
 
         const newRoom = await this.roomService.create(
@@ -127,6 +135,68 @@ export class ChatGateway
           this.logger.error(
             `Failed to emit roomCreated event: ${error.message}`,
             error.stack,
+          );
+
+          throw new WsException(
+            `Unable to notify all participants about the new room creation.`,
+          );
+        }
+      },
+    );
+  }
+
+  @SubscribeMessage('updateRoom')
+  async onUpdateRoom(
+    @WsCurrentUser() currentUser: UserPayload,
+    @MessageBody() updateRoomDto: UpdateRoomDto,
+  ) {
+    await this.handleEvent(
+      UpdateRoomDto,
+      updateRoomDto,
+      async (validatedDto) => {
+        const { id: userId } = currentUser;
+        const { roomId, participants: participantIds } = validatedDto;
+
+        let participants: User[];
+
+        if (
+          participantIds &&
+          participantIds.length &&
+          !participantIds.includes(userId)
+        ) {
+          participantIds.push(userId);
+        }
+
+        participants =
+          participantIds && participantIds.length
+            ? await this.fetchParticipants(participantIds)
+            : (await this.roomService.findOne(roomId)).participants;
+
+        await this.roomService.update(
+          userId,
+          roomId,
+          updateRoomDto,
+          participants,
+        );
+
+        try {
+          const updatedRoom = await this.roomService.findOne(roomId);
+
+          for (const { connectedUsers } of updatedRoom.participants) {
+            for (const { socketId } of connectedUsers) {
+              this.server.to(socketId).emit('roomUpdated', updatedRoom);
+              this.logger.log(
+                `Room update notification sent to socket ID: ${socketId}`,
+              );
+            }
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to notify participants about the room update for room ID ${roomId}: ${error.message}`,
+            error.stack,
+          );
+          throw new WsException(
+            `An error occurred while notifying participants of the room update. Please try again.`,
           );
         }
       },
