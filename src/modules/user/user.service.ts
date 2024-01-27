@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { RemoveResponse } from 'src/types/remove-response.type';
+import { sanitizeUser } from '../../common/helpers/sanitize-user';
 
 @Injectable()
 export class UserService {
@@ -25,7 +26,7 @@ export class UserService {
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     try {
       const user = this.userRepository.create(createUserDto);
-      return this.sanitizeUser(await this.userRepository.save(user));
+      return sanitizeUser(await this.userRepository.save(user));
     } catch (error) {
       this.logger.error(`Failed to create user: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to create user');
@@ -45,7 +46,7 @@ export class UserService {
         throw new NotFoundException(`User with ID "${userId}" not found`);
       }
 
-      return this.sanitizeUser(user);
+      return sanitizeUser(user);
     } catch (error) {
       this.logger.error(`Failed to find user: ${error.message}`, error.stack);
       throw new NotFoundException(`Failed to find user with ID "${userId}"`);
@@ -80,7 +81,7 @@ export class UserService {
   async findAll(): Promise<UserResponseDto[]> {
     try {
       const users = await this.userRepository.find();
-      return users.map((user) => this.sanitizeUser(user));
+      return users.map((user) => sanitizeUser(user));
     } catch (error) {
       this.logger.error(
         `Failed to retrieve all users: ${error.message}`,
@@ -103,7 +104,7 @@ export class UserService {
       }
 
       Object.assign(user, updateUserDto);
-      return this.sanitizeUser(await this.userRepository.save(user));
+      return sanitizeUser(await this.userRepository.save(user));
     } catch (error) {
       this.logger.error(`Failed to update user: ${error.message}`, error.stack);
 
@@ -139,10 +140,5 @@ export class UserService {
         `Failed to remove user with ID "${userId}"`,
       );
     }
-  }
-
-  private sanitizeUser(user: User): UserResponseDto {
-    const { hashedPassword, refreshToken, ...sanitizedUser } = user;
-    return sanitizedUser;
   }
 }
