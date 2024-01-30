@@ -25,6 +25,7 @@ import { User } from '../user/entities/user.entity';
 import { UpdateRoomDto } from './dtos/room/update-room.dto';
 import { DeleteRoomDto } from './dtos/room/delete-room.dto';
 import { CreateMessageDto } from './dtos/message/create-message.dto';
+import { MessageService } from './services/message.service';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -42,6 +43,7 @@ export class ChatGateway
     private readonly userService: UserService,
     private readonly roomService: RoomService,
     private readonly connectedUserService: ConnectedUserService,
+    private readonly messageService: MessageService,
   ) {
     super();
   }
@@ -250,8 +252,28 @@ export class ChatGateway
   async onSendMessage(
     @WsCurrentUser() currentUser: UserPayload,
     @MessageBody() createMessageDto: CreateMessageDto,
-    @ConnectedSocket() socket: Socket,
-  ): Promise<void> {}
+  ): Promise<void> {
+    const userId = currentUser.id;
+    const { roomId } = createMessageDto;
+
+    await this.messageService.createMessage(userId, createMessageDto);
+    this.logger.log(
+      `User ID ${userId} sent a new message in Room ID ${roomId}`,
+    );
+
+    const messages = await this.messageService.findByRoomId({ roomId });
+
+    const room = await this.roomService.findOne(roomId);
+
+    room.participants.forEach((participant) => {
+      participant.connectedUsers.forEach(({ socketId }) => {
+        this.server.to(socketId).emit('messageSent', messages);
+        this.logger.log(
+          `Notified User at Socket ID ${socketId} about a new message in Room ID ${roomId}`,
+        );
+      });
+    });
+  }
 
   private async fetchParticipants(participantsIds: string[]): Promise<User[]> {
     const participants: User[] = [];

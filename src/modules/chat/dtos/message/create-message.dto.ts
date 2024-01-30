@@ -5,7 +5,7 @@ export class CreateMessageDto {
   @ApiProperty({ required: true })
   @IsString()
   @IsNotEmpty()
-  roomId: number;
+  roomId: string;
 
   @ApiProperty({ required: true })
   @IsString()
