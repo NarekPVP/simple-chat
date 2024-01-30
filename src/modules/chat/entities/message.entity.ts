@@ -6,13 +6,19 @@ import { User } from 'src/modules/user/entities/user.entity';
 @Entity({ name: 'message' })
 export class Message extends BaseEntity {
   @Column()
-  roomId: number;
+  roomId: string;
 
   @Column()
   text: string;
 
   @ManyToOne(() => Room, (roomEntity) => roomEntity.messages)
   room: Room;
+
+  @Column()
+  createdBy: string;
+
+  @Column()
+  updatedBy: string;
 
   @ManyToOne(() => User, (user) => user.messages)
   @JoinColumn([{ name: 'createdBy', referencedColumnName: 'id' }])
