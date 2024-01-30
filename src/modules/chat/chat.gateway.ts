@@ -24,6 +24,7 @@ import { plainToInstance } from 'class-transformer';
 import { User } from '../user/entities/user.entity';
 import { UpdateRoomDto } from './dtos/room/update-room.dto';
 import { DeleteRoomDto } from './dtos/room/delete-room.dto';
+import { CreateMessageDto } from './dtos/message/create-message.dto';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -244,6 +245,13 @@ export class ChatGateway
       },
     );
   }
+
+  @SubscribeMessage('sendMessage')
+  async onSendMessage(
+    @WsCurrentUser() currentUser: UserPayload,
+    @MessageBody() createMessageDto: CreateMessageDto,
+    @ConnectedSocket() socket: Socket,
+  ): Promise<void> {}
 
   private async fetchParticipants(participantsIds: string[]): Promise<User[]> {
     const participants: User[] = [];
