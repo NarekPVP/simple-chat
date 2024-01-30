@@ -6,6 +6,7 @@ import { CreateRoomDto } from '../dtos/room/create-room.dto';
 import { UpdateRoomDto } from '../dtos/room/update-room.dto';
 import { User } from 'src/modules/user/entities/user.entity';
 import { WsException } from '@nestjs/websockets';
+import { sanitizeUser } from 'src/common/helpers/sanitize-user';
 
 @Injectable()
 export class RoomService {
@@ -56,6 +57,9 @@ export class RoomService {
       if (!room) {
         throw new WsException(`Room with ID "${id}" not found`);
       }
+      room.participants = room.participants.map(
+        (participant) => sanitizeUser(participant) as User,
+      );
       return room;
     } catch (error) {
       this.logger.error(
