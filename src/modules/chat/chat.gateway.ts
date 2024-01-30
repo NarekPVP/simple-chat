@@ -23,6 +23,7 @@ import { ConnectedUserService } from './services/connected-user.service';
 import { plainToInstance } from 'class-transformer';
 import { User } from '../user/entities/user.entity';
 import { UpdateRoomDto } from './dtos/room/update-room.dto';
+import { DeleteRoomDto } from './dtos/room/delete-room.dto';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -198,6 +199,47 @@ export class ChatGateway
           throw new WsException(
             `An error occurred while notifying participants of the room update. Please try again.`,
           );
+        }
+      },
+    );
+  }
+
+  @SubscribeMessage('deleteRoom')
+  async onDeleteRoom(
+    @WsCurrentUser() currentUser: UserPayload,
+    @MessageBody() deleteRoomDto: DeleteRoomDto,
+  ): Promise<void> {
+    await this.handleEvent(
+      DeleteRoomDto,
+      deleteRoomDto,
+      async (validatedDto) => {
+        const { id: userId } = currentUser;
+        const { roomId } = validatedDto;
+        const roomToDelete = await this.roomService.findOne(roomId);
+
+        const isParticipant = roomToDelete.participants.some(
+          (participant) => participant.id === userId,
+        );
+
+        if (!isParticipant) {
+          throw new WsException(
+            `Deletion failed: You are not authorized to delete this room.`,
+          );
+        }
+
+        const connectedParticipants = roomToDelete.participants
+          .filter((participant) => participant.connectedUsers.length)
+          .flatMap((participant) => participant.connectedUsers);
+
+        await this.roomService.deleteRoom(roomId);
+
+        for (const { socketId } of connectedParticipants) {
+          this.server
+            .to(socketId)
+            .emit(
+              'roomDeleted',
+              `Room with ID ${roomId} has been successfully deleted.`,
+            );
         }
       },
     );

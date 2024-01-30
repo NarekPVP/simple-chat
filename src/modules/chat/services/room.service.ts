@@ -121,18 +121,23 @@ export class RoomService {
     }
   }
 
-  async delete(id: string): Promise<void> {
+  async deleteRoom(roomId: string): Promise<void> {
     try {
-      const result = await this.roomRepository.delete(id);
-      if (result.affected === 0) {
-        throw new WsException(`Room with ID "${id}" not found`);
+      const deletionResult = await this.roomRepository.delete(roomId);
+
+      if (deletionResult.affected === 0) {
+        throw new WsException(
+          `Deletion failed: Room with ID "${roomId}" could not be found.`,
+        );
       }
     } catch (error) {
       this.logger.error(
-        `Failed to delete room with ID ${id}: ${error.message}`,
+        `Failed to delete room with ID ${roomId}: ${error.message}`,
         error.stack,
       );
-      throw new WsException('Error occurred while deleting the room.');
+      throw new WsException(
+        'An error occurred while attempting to delete the room. Please try again.',
+      );
     }
   }
 }
