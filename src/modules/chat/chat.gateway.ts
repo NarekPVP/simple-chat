@@ -1,6 +1,5 @@
 import { Logger, UnauthorizedException, UseFilters } from '@nestjs/common';
 import {
-  ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,

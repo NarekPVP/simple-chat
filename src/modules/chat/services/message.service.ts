@@ -6,6 +6,8 @@ import { CreateMessageDto } from '../dtos/message/create-message.dto';
 import { WsException } from '@nestjs/websockets';
 import { FilterMessageDto } from '../dtos/message/filter-message.dto';
 import { TResultAndCount } from 'src/types/result-and-count.type';
+import { MessageDto } from '../dtos/message/message.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class MessageService {
@@ -43,11 +45,8 @@ export class MessageService {
 
   async findByRoomId(
     filterMessageDto: FilterMessageDto,
-  ): Promise<TResultAndCount<Message>> {
+  ): Promise<TResultAndCount<MessageDto>> {
     const { first = 0, rows = 20, filter = '', roomId } = filterMessageDto;
-    this.logger.log(
-      `Retrieving messages for room ID ${roomId} with filter '${filter}' and pagination first: ${first}, rows: ${rows}`,
-    );
 
     try {
       const [result, total] = await this.messageRepository.findAndCount({
@@ -58,10 +57,13 @@ export class MessageService {
         skip: first,
       });
 
-      this.logger.log(
-        `Retrieved ${result.length} messages for room ID ${roomId}`,
-      );
-      return { result, total };
+      const sanitizedMessages = result.map((message) => {
+        const { creator } = message;
+        const { hashedPassword, refreshToken, ...sanitizedCreator } = creator;
+        return { ...message, creator: sanitizedCreator };
+      });
+
+      return { result: sanitizedMessages, total };
     } catch (error) {
       this.logger.error(
         `Failed to retrieve messages for room ID ${roomId}: ${error.message}`,

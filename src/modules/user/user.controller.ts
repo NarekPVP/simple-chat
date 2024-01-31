@@ -18,7 +18,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { User } from './entities/user.entity';
-import { UserResponseDto } from './dtos/user-response.dto';
+import { UserDto } from './dtos/user.dto';
 import { RemoveResponse } from 'src/types/remove-response.type';
 
 @ApiTags('user')
@@ -35,7 +35,7 @@ export class UserController {
     description: 'Retrieved all users successfully.',
     type: [User],
   })
-  async findAll(): Promise<UserResponseDto[]> {
+  async findAll(): Promise<UserDto[]> {
     return await this.userService.findAll();
   }
 
@@ -50,7 +50,7 @@ export class UserController {
     status: HttpStatus.NOT_FOUND,
     description: 'Failed to find user with ID $userId',
   })
-  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
+  async findOne(@Param('id') id: string): Promise<UserDto> {
     return await this.userService.findOne(id);
   }
 
@@ -68,7 +68,7 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<UserDto> {
     return await this.userService.update(id, updateUserDto);
   }
 

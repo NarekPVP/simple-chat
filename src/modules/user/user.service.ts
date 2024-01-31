@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { UpdateUserDto } from './dtos/update-user.dto';
-import { UserResponseDto } from './dtos/user-response.dto';
+import { UserDto } from './dtos/user.dto';
 import { RemoveResponse } from 'src/types/remove-response.type';
 import { sanitizeUser } from '../../common/helpers/sanitize-user';
 
@@ -23,7 +23,7 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+  async create(createUserDto: CreateUserDto): Promise<UserDto> {
     try {
       const user = this.userRepository.create(createUserDto);
       return sanitizeUser(await this.userRepository.save(user));
@@ -33,7 +33,7 @@ export class UserService {
     }
   }
 
-  async findOne(userId: string): Promise<UserResponseDto> {
+  async findOne(userId: string): Promise<UserDto> {
     try {
       const user = await this.userRepository.findOne({
         where: {
@@ -78,7 +78,7 @@ export class UserService {
     }
   }
 
-  async findAll(): Promise<UserResponseDto[]> {
+  async findAll(): Promise<UserDto[]> {
     try {
       const users = await this.userRepository.find();
       return users.map((user) => sanitizeUser(user));
@@ -91,10 +91,7 @@ export class UserService {
     }
   }
 
-  async update(
-    userId: string,
-    updateUserDto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  async update(userId: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
     try {
       const user = await this.findOne(userId);
 
