@@ -1,5 +1,6 @@
 import { Logger, UnauthorizedException, UseFilters } from '@nestjs/common';
 import {
+  ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -25,6 +26,7 @@ import { UpdateRoomDto } from './dtos/room/update-room.dto';
 import { DeleteRoomDto } from './dtos/room/delete-room.dto';
 import { CreateMessageDto } from './dtos/message/create-message.dto';
 import { MessageService } from './services/message.service';
+import { FilterMessageDto } from './dtos/message/filter-message.dto';
 
 @UseFilters(WsExceptionFilter)
 @WebSocketGateway(4800, { cors: { origin: '*' } })
@@ -260,7 +262,7 @@ export class ChatGateway
       `User ID ${userId} sent a new message in Room ID ${roomId}`,
     );
 
-    const messages = await this.messageService.findByRoomId({ roomId });
+    const messages = await this.messageService.findByRoomId(userId, { roomId });
 
     const room = await this.roomService.findOne(roomId);
 
@@ -272,6 +274,21 @@ export class ChatGateway
         );
       });
     });
+  }
+
+  @SubscribeMessage('findAllMessages')
+  async onFindAllMessages(
+    @WsCurrentUser() currentUser: UserPayload,
+    @MessageBody() filterMessageDto: FilterMessageDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    const { id: userId } = currentUser;
+    const messages = await this.messageService.findByRoomId(
+      userId,
+      filterMessageDto,
+    );
+
+    this.server.to(socket.id).emit('allMessages', messages);
   }
 
   private async fetchParticipants(participantsIds: string[]): Promise<User[]> {
