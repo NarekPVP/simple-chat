@@ -254,26 +254,34 @@ export class ChatGateway
     @WsCurrentUser() currentUser: UserPayload,
     @MessageBody() createMessageDto: CreateMessageDto,
   ): Promise<void> {
-    const userId = currentUser.id;
-    const { roomId } = createMessageDto;
+    await this.handleEvent(
+      CreateMessageDto,
+      createMessageDto,
+      async (validatedDto) => {
+        const userId = currentUser.id;
+        const { roomId } = validatedDto;
 
-    await this.messageService.createMessage(userId, createMessageDto);
-    this.logger.log(
-      `User ID ${userId} sent a new message in Room ID ${roomId}`,
-    );
-
-    const messages = await this.messageService.findByRoomId(userId, { roomId });
-
-    const room = await this.roomService.findOne(roomId);
-
-    room.participants.forEach((participant) => {
-      participant.connectedUsers.forEach(({ socketId }) => {
-        this.server.to(socketId).emit('messageSent', messages);
+        await this.messageService.createMessage(userId, validatedDto);
         this.logger.log(
-          `Notified User at Socket ID ${socketId} about a new message in Room ID ${roomId}`,
+          `User ID ${userId} sent a new message in Room ID ${roomId}`,
         );
-      });
-    });
+
+        const messages = await this.messageService.findByRoomId(userId, {
+          roomId,
+        });
+
+        const room = await this.roomService.findOne(roomId);
+
+        room.participants.forEach((participant) => {
+          participant.connectedUsers.forEach(({ socketId }) => {
+            this.server.to(socketId).emit('messageSent', messages);
+            this.logger.log(
+              `Notified User at Socket ID ${socketId} about a new message in Room ID ${roomId}`,
+            );
+          });
+        });
+      },
+    );
   }
 
   @SubscribeMessage('findAllMessages')
@@ -282,13 +290,19 @@ export class ChatGateway
     @MessageBody() filterMessageDto: FilterMessageDto,
     @ConnectedSocket() socket: Socket,
   ) {
-    const { id: userId } = currentUser;
-    const messages = await this.messageService.findByRoomId(
-      userId,
+    await this.handleEvent(
+      FilterMessageDto,
       filterMessageDto,
-    );
+      async (validatedDto) => {
+        const { id: userId } = currentUser;
+        const messages = await this.messageService.findByRoomId(
+          userId,
+          validatedDto,
+        );
 
-    this.server.to(socket.id).emit('allMessages', messages);
+        this.server.to(socket.id).emit('allMessages', messages);
+      },
+    );
   }
 
   private async fetchParticipants(participantsIds: string[]): Promise<User[]> {
