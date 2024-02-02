@@ -6,13 +6,13 @@ Simple-Chat is an open-source, minimalistic chat application designed for easy c
 
 ### Authors
 
-Backend Service: [Hovhannes Hovhannisyan](https://github.com/h0vhann1syan)
-Mobile Application: [Narek Hovhannisyan](https://github.com/NarekPVP)
+Backend Service: [Hovhannes Hovhannisyan](https://github.com/h0vhann1syan)  
+Mobile Application: [Narek Hovhannisyan](https://github.com/NarekPVP)  
 
 ### Repositories
 
-Backend Service: [simple-chat](https://github.com/h0vhann1syan/simple-chat)
-Mobile Application: [simple-chat-mobile](https://github.com/NarekPVP/Bitvector)
+Backend Service: [simple-chat](https://github.com/h0vhann1syan/simple-chat)  
+Mobile Application: [simple-chat-mobile](https://github.com/NarekPVP/Bitvector)  
 
 ### Features
 
