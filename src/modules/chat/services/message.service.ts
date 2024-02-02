@@ -8,6 +8,7 @@ import { FilterMessageDto } from '../dtos/message/filter-message.dto';
 import { TResultAndCount } from 'src/types/result-and-count.type';
 import { MessageDto } from '../dtos/message/message.dto';
 import { RoomService } from './room.service';
+import { UpdateMessageDto } from '../dtos/message/update-message.dto';
 
 @Injectable()
 export class MessageService {
@@ -19,7 +20,7 @@ export class MessageService {
     private readonly roomService: RoomService,
   ) {}
 
-  async createMessage(
+  async create(
     userId: string,
     createMessageDto: CreateMessageDto,
   ): Promise<Message> {
@@ -94,34 +95,48 @@ export class MessageService {
     }
   }
 
-  async findByRoomId2(
-    filterMessageDto: FilterMessageDto,
+  async update(
+    userId: string,
+    updateMessageDto: UpdateMessageDto,
   ): Promise<TResultAndCount<MessageDto>> {
-    const { first = 0, rows = 20, filter = '', roomId } = filterMessageDto;
+    const { messageId, text } = updateMessageDto;
 
     try {
-      const [result, total] = await this.messageRepository.findAndCount({
-        where: { text: ILike(`%${filter}%`), roomId },
-        relations: ['creator'],
-        order: { createdAt: 'DESC' },
-        take: rows,
-        skip: first,
+      const existingMessage = await this.messageRepository.findOne({
+        where: { id: messageId },
       });
 
-      const sanitizedMessages = result.map((message) => {
-        const { creator } = message;
-        const { hashedPassword, refreshToken, ...sanitizedCreator } = creator;
-        return { ...message, creator: sanitizedCreator };
-      });
+      if (!existingMessage) {
+        throw new NotFoundException(
+          `Message with ID "${messageId}" not found.`,
+        );
+      }
 
-      return { result: sanitizedMessages, total };
+      if (existingMessage.createdBy !== userId) {
+        throw new WsException(
+          'Access Denied: You can only update your own messages.',
+        );
+      }
+
+      await this.messageRepository.update(
+        { id: messageId },
+        { text, createdAt: new Date() },
+      );
+
+      this.logger.log(
+        `Message ID ${messageId} updated successfully by User ID: ${userId}`,
+      );
+
+      return await this.findByRoomId(userId, {
+        roomId: existingMessage.roomId,
+      });
     } catch (error) {
       this.logger.error(
-        `Failed to retrieve messages for room ID ${roomId}: ${error.message}`,
+        `Failed to update message ID ${messageId} by User ID: ${userId}. Error: ${error.message}`,
         error.stack,
       );
       throw new WsException(
-        'An error occurred while fetching messages. Please try again later.',
+        'An error occurred while updating the message. Please try again.',
       );
     }
   }
