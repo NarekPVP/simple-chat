@@ -261,7 +261,7 @@ export class ChatGateway
         const userId = currentUser.id;
         const { roomId } = validatedDto;
 
-        await this.messageService.createMessage(userId, validatedDto);
+        await this.messageService.create(userId, validatedDto);
         this.logger.log(
           `User ID ${userId} sent a new message in Room ID ${roomId}`,
         );
